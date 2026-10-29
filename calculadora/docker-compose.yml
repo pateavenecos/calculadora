@@ -1,0 +1,81 @@
+x-servicio: &servicio
+  build:
+    context: .
+  environment:
+    DATABASE_URL: postgresql://calc:calc@db:5432/calculadora
+  depends_on:
+    db:
+      condition: service_healthy
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: calc
+      POSTGRES_PASSWORD: calc
+      POSTGRES_DB: calculadora
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U calc -d calculadora"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  circulo:
+    <<: *servicio
+    build:
+      context: .
+      args:
+        MODULO: circulo.main:app
+
+  cuadrado:
+    <<: *servicio
+    build:
+      context: .
+      args:
+        MODULO: cuadrado.main:app
+
+  triangulo:
+    <<: *servicio
+    build:
+      context: .
+      args:
+        MODULO: triangulo.main:app
+
+  potencia:
+    <<: *servicio
+    build:
+      context: .
+      args:
+        MODULO: potencia.main:app
+
+  ecuacion_cuadratica:
+    <<: *servicio
+    build:
+      context: .
+      args:
+        MODULO: ecuacion_cuadratica.main:app
+
+  gateway:
+    build:
+      context: .
+      args:
+        MODULO: gateway.main:app
+    environment:
+      CIRCULO_URL: http://circulo:8000
+      CUADRADO_URL: http://cuadrado:8000
+      TRIANGULO_URL: http://triangulo:8000
+      POTENCIA_URL: http://potencia:8000
+      ECUACION_URL: http://ecuacion_cuadratica:8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      - circulo
+      - cuadrado
+      - triangulo
+      - potencia
+      - ecuacion_cuadratica
+
+volumes:
+  pgdata:
